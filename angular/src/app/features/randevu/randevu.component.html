@@ -1,0 +1,152 @@
+<p-card header="Randevu">
+    <div>
+        <button
+            pButton
+            pRipple
+            class="p-button-primary mr-2"
+            icon="pi pi-angle-double-left"
+            (click)="previousMonth()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            class="p-button-primary mr-2"
+            icon="pi pi-angle-left"
+            (click)="previousDay()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            class="p-button-primary mr-2"
+            icon="pi pi-angle-right"
+            (click)="nextDay()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            class="p-button-primary mr-2"
+            icon="pi pi-angle-double-right"
+            (click)="nextMonth()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            class="p-button-primary mr-2"
+            icon="pi pi-calendar"
+            (click)="dialogOpen()"
+        ></button>
+        <h5>Tarih: {{ selectedDate | date : "fullDate" }}</h5>
+    </div>
+
+    <span class="p-float-label my-4">
+        <p-dropdown
+            optionLabel="calisanAdi"
+            optionValue="calisanId"
+            [style]="{ width: '100%' }"
+            [options]="calisanList"
+            placeholder="Calışlan"
+            [(ngModel)]="selectWorkerValue"
+            (click)="selectWorker()"
+        ></p-dropdown>
+        <label>Çalışanlar</label>
+    </span>
+
+    <div>
+        <div class="custom-list-group">
+            <ul class="clock-container">
+                <li
+                    class="custom-list-group-item"
+                    *ngFor="let hour of getSelectedDayHours()"
+                >
+                    <div (click)="selectOclok(hour)">
+                        {{ hour }}:00 - {{ hour + 1 }}:00
+                    </div>
+                    <ng-container *ngFor="let item of selectCalisanRandevu">
+                        <div *ngIf="item.randevuTarih.getHours() == hour">
+                            {{ item | json }}
+                        </div>
+                    </ng-container>
+                </li>
+            </ul>
+        </div>
+    </div>
+</p-card>
+
+<p-dialog
+    [header]="'Randevu işlemleri'"
+    [(visible)]="dialogShow"
+    [modal]="true"
+    [style]="{ width: '80vw' }"
+>
+    <p-card>
+        <div class="grid">
+            <div class="col-12">
+                <span class="p-float-label">
+                    <p-dropdown
+                        optionLabel="yeniHizmetAdi"
+                        optionValue="id"
+                        [style]="{ width: '100%' }"
+                        [options]="hizmetList"
+                        placeholder="hizmet"
+                        [(ngModel)]="selectCalisanIDs"
+                        (click)="selectHizmetMethod()"
+                    ></p-dropdown>
+                    <label>Hizmet</label>
+                </span>
+            </div>
+            <div class="col-12">
+                <span class="p-float-label">
+                    <p-dropdown
+                        optionLabel="calisanAdi"
+                        optionValue="calisanId"
+                        placeholder="Calışlan"
+                        [options]="calisanIDList"
+                        [(ngModel)]="selectCalisan"
+                        [style]="{ width: '100%' }"
+                    ></p-dropdown>
+                    <label>Calışlan</label>
+                </span>
+            </div>
+            <div class="col-12">
+                <span class="p-float-label">
+                    <p-dropdown
+                        optionLabel="musteriAdi"
+                        optionValue="id"
+                        placeholder="Müsteri"
+                        [options]="musteriList"
+                        [(ngModel)]="selectMusteri"
+                        [style]="{ width: '100%' }"
+                    ></p-dropdown>
+                    <label>Müsteri</label>
+                </span>
+            </div>
+            <div class="col-12">
+                <p-calendar
+                    [inline]="true"
+                    [showWeek]="true"
+                    [style]="{ width: '100%' }"
+                    [(ngModel)]="selectDate"
+                ></p-calendar>
+            </div>
+            <div class="col-12">
+                <span class="p-float-label">
+                    <p-dropdown
+                        placeholder="Randevu saati"
+                        [options]="selectedClock"
+                        [(ngModel)]="selectClock"
+                        [style]="{ width: '100%' }"
+                    ></p-dropdown>
+                    <label>Randevu saati</label>
+                </span>
+            </div>
+        </div>
+        <div style="display: flex; width: 100%; justify-content: flex-end">
+            <p-button
+                type="button"
+                severity="secondery"
+                label="kaydet"
+                (onClick)="save()"
+            />
+        </div>
+    </p-card>
+</p-dialog>
