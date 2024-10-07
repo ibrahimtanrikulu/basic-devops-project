@@ -1,0 +1,32 @@
+---
+- name: Update apt and install dependencies
+  apt:
+    update_cache: yes
+    name: "{{ item }}"  # loop bölümündekileri sırayla kuruyor
+    state: present
+  loop:
+    - openjdk-11-jdk
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg
+
+- name: Add Jenkins GPG key
+  apt_key:
+    url: https://pkg.jenkins.io/debian/jenkins.io.key
+    state: present
+
+- name: Add Jenkins repository
+  apt_repository:
+    repo: 'deb http://pkg.jenkins.io/debian-stable binary/'
+
+- name: Install Jenkins
+  apt:
+    name: jenkins
+    state: present
+
+- name: Start and enable Jenkins service
+  systemd:
+    name: jenkins
+    enabled: yes
+    state: started

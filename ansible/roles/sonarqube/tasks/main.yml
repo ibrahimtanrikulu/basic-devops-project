@@ -1,0 +1,53 @@
+---
+- name: Install Java
+  apt:
+    name: openjdk-11-jdk
+    state: present
+
+- name: Download SonarQube
+  get_url:
+    url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.0.43852.zip
+    dest: /tmp/sonarqube.zip
+
+- name: Extract SonarQube
+  unarchive:
+    src: /tmp/sonarqube.zip
+    dest: /opt/
+    remote_src: yes
+
+- name: Create symlink for SonarQube
+  file:
+    src: /opt/sonarqube-8.9.0.43852
+    dest: /opt/sonarqube
+    state: link
+
+- name: Change ownership of SonarQube directory
+  file:
+    path: /opt/sonarqube
+    owner: root
+    group: root
+    recurse: yes
+
+- name: Configure SonarQube as a service
+  copy:
+    content: |
+      [Unit]
+      Description=SonarQube Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+      ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+      User=root
+      Restart=on-abort
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/sonarqube.service
+
+- name: Start and enable SonarQube service
+  systemd:
+    name: sonarqube
+    enabled: yes
+    state: started
