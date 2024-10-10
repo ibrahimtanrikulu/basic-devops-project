@@ -51,7 +51,7 @@ resource "aws_instance" "sonarqube" {
   }
 } 
 
-# EC2 Instance Oluşturma
+# helm_ec2 Instance Oluşturma
 resource "aws_instance" "helm_ec2" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
