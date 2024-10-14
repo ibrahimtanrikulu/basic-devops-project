@@ -1,0 +1,12 @@
+---
+- hosts: jenkins
+  roles:
+    - jenkins
+
+- hosts: nexus
+  roles:
+    - nexus
+
+- hosts: sonarqube
+  roles:
+    - sonarqube
