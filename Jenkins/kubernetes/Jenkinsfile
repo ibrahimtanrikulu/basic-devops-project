@@ -1,0 +1,10 @@
+pipeline {
+    agent any
+    stages {
+        stage('K8s Rollout') {
+            steps {
+                sh 'kubectl rollout status deployment/myapp'
+            }
+        }
+    }
+}
