@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = 'dockerhub-username/angular-app'  // Docker Hub'daki repository
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'  // Jenkins'teki Docker Hub credentials ID
+        KUBECONFIG_CREDENTIALS_ID = 'kubeconfig-credentials'  // Kubernetes kubeconfig credentials ID
+        K8S_NAMESPACE = 'default'  // Kubernetes Namespace
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Git repository'den Angular projesini çekme
+                git 'https://github.com/your-repo/angular-app.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                // Angular projesi için gerekli bağımlılıkları yükleme
+                sh 'npm install'
+            }
+        }
+
+        stage('Build Angular App') {
+            steps {
+                // Angular uygulamasını production için build etme
+                sh 'npm run build --prod'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                // Docker image'i oluşturma
+                script {
+                    dockerImage = docker.build("${env.REGISTRY}:${env.BUILD_NUMBER}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                // Docker image'ini Docker Hub'a gönderme
+                script {
+                    docker.withRegistry('', env.DOCKER_CREDENTIALS_ID) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                // Kubernetes'e deploy işlemi
+                script {
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS_ID]) {
+                        // Kubernetes deployment'ını güncelleme
+                        sh """
+                        kubectl set image deployment/angular-app angular-app=${env.REGISTRY}:${env.BUILD_NUMBER} -n ${env.K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Sonuç ne olursa olsun çalışma alanını temizleme
+            cleanWs()
+        }
+    }
+}

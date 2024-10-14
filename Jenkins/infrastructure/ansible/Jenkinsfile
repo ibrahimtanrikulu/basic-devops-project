@@ -1,0 +1,10 @@
+pipeline {
+    agent any
+    stages {
+        stage('Ansible Playbook') {
+            steps {
+                sh 'ansible-playbook -i hosts playbook.yml'
+            }
+        }
+    }
+}

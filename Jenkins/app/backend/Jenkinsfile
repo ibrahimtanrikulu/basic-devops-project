@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = 'dockerhub-username/spring-boot-app'  // Docker Hub'daki repository'niz
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'  // Jenkins'deki Docker Hub credentials ID
+        KUBECONFIG_CREDENTIALS_ID = 'kubeconfig-credentials'  // Kubernetes kubeconfig credentials ID
+        K8S_NAMESPACE = 'default'  // Kubernetes Namespace
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Git repository'den kodu çekme
+                git 'https://github.com/your-repo/spring-boot-app.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Maven ile projeyi build etme
+                sh './mvnw clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Unit test'leri çalıştırma
+                sh './mvnw test'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                // Docker image'i oluşturma
+                script {
+                    dockerImage = docker.build("${env.REGISTRY}:${env.BUILD_NUMBER}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                // Docker image'ini Docker Hub'a push etme
+                script {
+                    docker.withRegistry('', env.DOCKER_CREDENTIALS_ID) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                // Kubernetes'e deploy işlemi
+                script {
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS_ID]) {
+                        // Kubernetes deployment'ı güncelleme
+                        sh """
+                        kubectl set image deployment/spring-boot-app spring-boot-app=${env.REGISTRY}:${env.BUILD_NUMBER} -n ${env.K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Sonuç ne olursa olsun temizleme işlemi
+            cleanWs()
+        }
+    }
+}
