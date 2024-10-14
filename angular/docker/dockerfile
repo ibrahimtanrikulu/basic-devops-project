@@ -1,0 +1,22 @@
+# Node.js image'ı ile Angular projesini build et
+FROM node:16 AS build
+
+# Uygulama dosyalarını konteyner içerisine kopyala
+WORKDIR /usr/src/app
+COPY . .
+
+# Angular projesini build et
+RUN npm install
+RUN npm run build --prod
+
+# Nginx image'ı ile build edilen uygulamayı sun
+FROM nginx:alpine
+
+# Nginx konfigürasyon dosyasını kopyala
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Build edilen uygulama dosyalarını Nginx'e kopyala
+COPY --from=build /usr/src/app/dist/uygulama-adi /usr/share/nginx/html
+
+# Nginx portunu expose et
+EXPOSE 80

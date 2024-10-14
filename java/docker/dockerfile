@@ -1,0 +1,11 @@
+# Temel image olarak OpenJDK kullan
+FROM openjdk:17-jdk-alpine
+
+# Uygulama dosyasını image'e kopyala
+COPY target/uygulama-adi.jar /app.jar
+
+# Uygulamanın çalıştırılması için komut
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+# Uygulamanın çalışacağı port
+EXPOSE 8080
