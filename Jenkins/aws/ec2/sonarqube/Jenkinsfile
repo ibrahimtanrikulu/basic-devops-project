@@ -1,0 +1,72 @@
+pipeline {
+    agent any 
+
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        S3_BUCKET = 'your-s3-bucket-name'
+        SONAR_HOST_URL = 'http://your-sonarqube-server'
+        SONAR_TOKEN = credentials('sonarqube-token')
+        APP_NAME = 'your-app-name'
+        DATABASE_NAME = 'your-database-name'
+        IMAGE_NAME = "${APP_NAME}:${env.BUILD_ID}"  
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // GitHub'dan kodu çek
+                git branch: 'master', url: 'https://github.com/kullaniciadi/repo.git'
+            }
+        } 
+
+        stage('SonarQube Analysis') {
+            steps {
+                // SonarQube analizi yap
+                sh '''
+                mvn sonar:sonar \
+                -Dsonar.projectKey=${APP_NAME} \
+                -Dsonar.host.url=${SONAR_HOST_URL} \
+                -Dsonar.login=${SONAR_TOKEN}
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // Testleri çalıştır
+                sh 'mvn test' // veya uygun test komutunu kullanın
+            }
+        }
+
+        stage('Backup Database to S3') {
+            steps {
+                // Veritabanı kopyasını S3'e gönder
+                sh '''
+                # Veritabanı yedeği alın (örn. MySQL için)
+                mysqldump -u your-username -p'your-password' ${DATABASE_NAME} > db_backup.sql
+                aws s3 cp db_backup.sql s3://${S3_BUCKET}/${APP_NAME}/db_backup_${env.BUILD_ID}.sql
+                '''
+            }
+        }
+
+        stage('Send Results to Grafana and Prometheus') {
+            steps { 
+                sh '''
+                curl -X POST -H "Content-Type: application/json" \
+                -d '{"status":"success","build_id":"${env.BUILD_ID}"}' \
+                http://your-prometheus-endpoint/api/v1/import
+                '''
+            }
+        } 
+    }
+
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
+        }
+    }
+}

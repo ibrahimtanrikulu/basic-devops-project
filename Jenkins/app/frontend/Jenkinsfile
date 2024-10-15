@@ -1,74 +1,88 @@
 pipeline {
-    agent any
+    agent any 
 
     environment {
-        REGISTRY = 'dockerhub-username/angular-app'  // Docker Hub'daki repository
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'  // Jenkins'teki Docker Hub credentials ID
-        KUBECONFIG_CREDENTIALS_ID = 'kubeconfig-credentials'  // Kubernetes kubeconfig credentials ID
-        K8S_NAMESPACE = 'default'  // Kubernetes Namespace
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        S3_BUCKET = 'your-s3-bucket-name'
+        APP_NAME = 'your-frontend-app-name'
+        IMAGE_NAME = "${APP_NAME}:${env.BUILD_ID}" // Docker imajı ismi
+        SONARQUBE_URL = 'http://your-sonarqube-server'
+        SONARQUBE_TOKEN = credentials('sonarqube-token') // SonarQube API token
+        NEXUS_URL = 'http://your-nexus-server/repository/your-repo'
+        NEXUS_CREDENTIALS = credentials('nexus-credentials-id') // Nexus kullanıcı adı ve şifre
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Git repository'den Angular projesini çekme
-                git 'https://github.com/your-repo/angular-app.git'
+                // GitHub'dan kodu çek
+                git branch: 'master', url: 'https://github.com/kullaniciadi/frontend-repo.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('SonarQube Analysis') {
             steps {
-                // Angular projesi için gerekli bağımlılıkları yükleme
-                sh 'npm install'
-            }
-        }
-
-        stage('Build Angular App') {
-            steps {
-                // Angular uygulamasını production için build etme
-                sh 'npm run build --prod'
+                // SonarQube analizi gerçekleştir
+                withSonarQubeEnv('SonarQube') {
+                    sh 'npm install'
+                    sh 'npm run test'
+                    sh 'sonar-scanner -Dsonar.projectKey=${APP_NAME} -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                // Docker image'i oluşturma
-                script {
-                    dockerImage = docker.build("${env.REGISTRY}:${env.BUILD_NUMBER}")
-                }
+                // Docker imajını oluştur
+                sh 'docker build -t ${IMAGE_NAME} .'
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Upload Old Version to S3') {
             steps {
-                // Docker image'ini Docker Hub'a gönderme
-                script {
-                    docker.withRegistry('', env.DOCKER_CREDENTIALS_ID) {
-                        dockerImage.push()
-                    }
-                }
+                // Eski sürümü S3'e yükle
+                sh '''
+                aws s3 cp s3://${S3_BUCKET}/${APP_NAME}/latest ./old_version --recursive || true
+                aws s3 cp ./dist s3://${S3_BUCKET}/${APP_NAME}/latest --recursive
+                '''
+            }
+        }
+
+        stage('Deploy to Nexus') {
+            steps {
+                // Nexus'a dağıtım yap
+                sh '''
+                npm config set registry ${NEXUS_URL}
+                npm publish --access public
+                '''
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                // Kubernetes'e deploy işlemi
-                script {
-                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS_ID]) {
-                        // Kubernetes deployment'ını güncelleme
-                        sh """
-                        kubectl set image deployment/angular-app angular-app=${env.REGISTRY}:${env.BUILD_NUMBER} -n ${env.K8S_NAMESPACE}
-                        """
-                    }
-                }
+                // Docker imajını container registry'ye push et (örn. ECR)
+                sh '''
+                # AWS ECR oturum açma
+                $(aws ecr get-login --no-include-email --region your-region)
+                docker tag ${IMAGE_NAME} your-account-id.dkr.ecr.your-region.amazonaws.com/${APP_NAME}:${env.BUILD_ID}
+                docker push your-account-id.dkr.ecr.your-region.amazonaws.com/${APP_NAME}:${env.BUILD_ID}
+                '''
+
+                // Helm ile Kubernetes'e dağıtım yap
+                sh '''
+                helm upgrade --install ${APP_NAME} ./path/to/helm/chart --namespace your-namespace --set image.repository=your-account-id.dkr.ecr.your-region.amazonaws.com/${APP_NAME},image.tag=${env.BUILD_ID}
+                '''
             }
         }
     }
 
     post {
-        always {
-            // Sonuç ne olursa olsun çalışma alanını temizleme
-            cleanWs()
+        success {
+            echo 'Frontend Deployment successful!'
+        }
+        failure {
+            echo 'Frontend Deployment failed.'
         }
     }
 }
