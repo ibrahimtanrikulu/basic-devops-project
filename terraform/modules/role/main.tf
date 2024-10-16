@@ -1,6 +1,6 @@
 # EC2 için IAM Rolü
 resource "aws_iam_role" "ec2_role" {
-  name = "ec2_role"
+  name = var.ec2_role_name
 
   assume_role_policy = jsonencode({
     "Version": "2012-10-17",
@@ -18,7 +18,7 @@ resource "aws_iam_role" "ec2_role" {
 
 # EC2 için IAM Politika
 resource "aws_iam_role_policy" "ec2_policy" {
-  name = "ec2_policy"
+  name = var.ec2_policy_name
   role = aws_iam_role.ec2_role.id
 
   policy = jsonencode({
@@ -39,7 +39,7 @@ resource "aws_iam_role_policy" "ec2_policy" {
 
 # S3 için IAM Rolü
 resource "aws_iam_role" "s3_role" {
-  name = "s3_role"
+  name = var.s3_role_name
 
   assume_role_policy = jsonencode({
     "Version": "2012-10-17",
@@ -57,7 +57,7 @@ resource "aws_iam_role" "s3_role" {
 
 # S3 için IAM Politika
 resource "aws_iam_role_policy" "s3_policy" {
-  name = "s3_policy"
+  name = var.s3_policy_name
   role = aws_iam_role.s3_role.id
 
   policy = jsonencode({
