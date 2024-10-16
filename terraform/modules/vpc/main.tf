@@ -1,7 +1,7 @@
 resource "aws_vpc" "this" {
   cidr_block = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+  enable_dns_support   = false
+  enable_dns_hostnames = false
   tags = {
     Name = "devops-project-vpc"
   }

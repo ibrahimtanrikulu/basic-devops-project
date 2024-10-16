@@ -2,10 +2,18 @@ provider "aws" {
   region = var.aws_region
 }
 
+# IAM modülü çağırılıyor
+module "iam" {
+  source = "./modules/iam"
+}
+
+# S3 modülü çağırılıyor
+module "s3" {
+  source = "./modules/s3"
+}
+
 # VPC modülü çağırılıyor
 module "vpc" {
   source = "./modules/vpc"
-  vpc_cidr = "10.0.0.0/16"
-  public_subnet_cidrs = ["10.0.1.0/24"]
-  private_subnet_cidrs = ["10.0.2.0/24"]
-}
+} 
+
