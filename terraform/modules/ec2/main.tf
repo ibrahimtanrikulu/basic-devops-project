@@ -2,9 +2,10 @@
 resource "aws_instance" "jenkins" {
   ami             = var.ami_id
   instance_type   = var.instance_type
-  subnet_id       = var.public_subnet_id
-  security_groups = [aws_security_group.jenkins_sg.name]
+  subnet_id       = var.subnet_id
+  security_groups = [var.security_group]
   key_name        = var.key_names[0]
+  iam_instance_profile = var.iam_role
   tags = {
     Name = "Jenkins-Server"
   }
@@ -14,13 +15,14 @@ resource "aws_instance" "jenkins" {
   }
 }
 
-# Nexus Server EC2 Instance
+# # Nexus Server EC2 Instance
 resource "aws_instance" "nexus" {
   ami             = var.ami_id
   instance_type   = var.instance_type
-  subnet_id       = var.public_subnet_id
-  security_groups = [aws_security_group.nexus_sg.name]
+  subnet_id       = var.subnet_id
+  security_groups = [var.security_group]
   key_name        = var.key_names[1]
+  iam_instance_profile = var.iam_role
   tags = {
     Name = "Nexus-Server"
   }
@@ -30,13 +32,14 @@ resource "aws_instance" "nexus" {
   }
 }
 
-# SonarQube EC2 Instance
+# # SonarQube EC2 Instance
 resource "aws_instance" "sonarqube" {
   ami             = var.ami_id
   instance_type   = var.instance_type
-  subnet_id       = var.public_subnet_id
-  security_groups = [aws_security_group.sonarqube_sg.name]
+  subnet_id       = var.subnet_id
+  security_groups = [var.security_group]
   key_name        = var.key_names[2]
+  iam_instance_profile = var.iam_role
   tags = {
     Name = "SonarQube-Server"
   }
@@ -46,13 +49,14 @@ resource "aws_instance" "sonarqube" {
   }
 }
 
-# helm_ec2 Instance Oluşturma
+# # helm_ec2 Instance Oluşturma
 resource "aws_instance" "helm_ec2" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
-  vpc_security_group_ids = [module.security_group.this_security_group_id]
+  vpc_security_group_ids = [var.security_group]
   subnet_id              = var.subnet_id
   key_name               = var.key_names[3]
+  iam_instance_profile = var.iam_role
   provisioner "remote-exec" {
     inline = [
       "sudo apt-get update -y",

@@ -12,3 +12,8 @@ output "sonarqube_public_ip" {
   description = "The public IP address of the SonarQube EC2 instance."
   value       = aws_instance.sonarqube.public_ip
 }
+
+output "helm_public_ip" {
+  description = "The public IP address of the SonarQube EC2 instance."
+  value       = aws_instance.helm_ec2.public_ip
+}
