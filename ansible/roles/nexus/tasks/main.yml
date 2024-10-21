@@ -1,60 +1,78 @@
 ---
-- name: Install Java
-  apt:
-    name: openjdk-11-jdk
-    state: present
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
 
-- name: Create nexus user
-  user:
-    name: nexus
-    shell: /bin/bash
-    home: /opt/nexus
-    create_home: yes
+    - name: Create nexus user
+      user:
+        name: nexus
+        shell: /bin/bash
+        home: /opt/nexus
+        create_home: yes
 
-- name: Download Nexus
-  get_url:
-    url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
-    dest: /tmp/nexus.tar.gz
+    - name: Download Nexus
+      get_url:
+        url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+        dest: /tmp/nexus.tar.gz
+        mode: "0644"
 
-- name: Extract Nexus
-  unarchive:
-    src: /tmp/nexus.tar.gz
-    dest: /opt/
-    remote_src: yes
+    - name: Extract Nexus
+      unarchive:
+        src: /tmp/nexus.tar.gz
+        dest: /opt/
+        remote_src: yes
 
-- name: Create symlink for nexus
-  file:
-    src: /opt/nexus-3*
-    dest: /opt/nexus
-    state: link
+    - name: Create symlink for nexus
+      file:
+        src: /opt/nexus-3*
+        dest: /opt/nexus
+        state: link
 
-- name: Change ownership of Nexus directory
-  file:
-    path: /opt/nexus
-    owner: nexus
-    group: nexus
-    recurse: yes
+    - name: Change ownership of Nexus directory
+      file:
+        path: /opt/nexus
+        owner: nexus
+        group: nexus
+        recurse: yes
 
-- name: Configure Nexus as a service
-  copy:
-    content: |
-      [Unit]
-      Description=Nexus Service
-      After=network.target
+    - name: Configure Nexus as a service
+      copy:
+        content: |
+          [Unit]
+          Description=Nexus Service
+          After=network.target
 
-      [Service]
-      Type=forking
-      ExecStart=/opt/nexus/bin/nexus start
-      ExecStop=/opt/nexus/bin/nexus stop
-      User=nexus
-      Restart=on-abort
+          [Service]
+          Type=forking
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
+          User=nexus
+          Restart=on-abort
 
-      [Install]
-      WantedBy=multi-user.target
-    dest: /etc/systemd/system/nexus.service
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/nexus.service
+        mode: "0644"
 
-- name: Start and enable Nexus service
-  systemd:
-    name: nexus
-    enabled: yes
-    state: started
+    - name: Start and enable Nexus service
+      systemd:
+        name: nexus
+        enabled: yes
+        state: started
+
+    - name: Clean up temporary Nexus tarball
+      file:
+        path: /tmp/nexus.tar.gz
+        state: absent
+
+    - name: Ensure Nexus is running
+      wait_for:
+        port: 8081
+        delay: 10
+        timeout: 60
+        state: started

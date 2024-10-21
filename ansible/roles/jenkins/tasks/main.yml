@@ -2,7 +2,7 @@
 - name: Update apt and install dependencies
   apt:
     update_cache: yes
-    name: "{{ item }}"  # loop bölümündekileri sırayla kuruyor
+    name: "{{ item }}"  # Installs each package in the loop
     state: present
   loop:
     - openjdk-11-jdk
@@ -10,6 +10,16 @@
     - ca-certificates
     - curl
     - gnupg
+    - software-properties-common
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist  # Ensures all packages are up to date
+
+- name: Set default Java version
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-11-openjdk-amd64/bin/java
 
 - name: Add Jenkins GPG key
   apt_key:
@@ -19,6 +29,7 @@
 - name: Add Jenkins repository
   apt_repository:
     repo: 'deb http://pkg.jenkins.io/debian-stable binary/'
+    state: present
 
 - name: Install Jenkins
   apt:
@@ -30,3 +41,16 @@
     name: jenkins
     enabled: yes
     state: started
+
+- name: Ensure port 8080 is open for Jenkins (optional firewall config)
+  ufw:
+    rule: allow
+    port: 8080
+    proto: tcp
+
+- name: Fetch initial Jenkins admin password (optional)
+  shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_admin_password
+
+- debug:
+    msg: "Jenkins initial admin password is: {{ jenkins_admin_password.stdout }}"

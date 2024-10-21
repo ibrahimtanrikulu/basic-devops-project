@@ -56,20 +56,9 @@ resource "aws_instance" "helm_ec2" {
   vpc_security_group_ids = [var.security_group]
   subnet_id              = var.subnet_id
   key_name               = var.key_names[3]
-  iam_instance_profile = var.iam_role
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt-get update -y",
-      "sudo apt-get install -y python3",
-      "curl -s https://raw.githubusercontent.com/ansible/ansible/stable-2.9/contrib/inventory/ec2.py -o /etc/ansible/ec2.py",
-      "chmod +x /etc/ansible/ec2.py"
-    ]
-
-    connection {
-      type = "ssh"
-      user = "ubuntu"
-      host = self.public_ip
-    }
+  iam_instance_profile = var.iam_role 
+  provisioner "local-exec" {
+    command = "ansible-playbook -i ../../../ansible/inventory.ini ../../../ansible/playbook.yml --limit helm"
   }
 
   tags = {
