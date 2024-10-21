@@ -1,1 +1,36 @@
 ---
+- name: Install Helm on EC2 instance
+  hosts: your_ec2_instance
+  become: yes
+  tasks:
+    - name: Ensure required packages are installed
+      yum:
+        name:
+          - curl
+          - tar
+          - gzip
+        state: present
+
+    - name: Download Helm binary
+      get_url:
+        url: https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz
+        dest: /tmp/helm.tar.gz
+
+    - name: Extract Helm binary
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move Helm binary to /usr/local/bin
+      command: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+      args:
+        removes: /usr/local/bin/helm
+
+    - name: Verify Helm installation
+      command: helm version
+      register: helm_version
+
+    - name: Display Helm version
+      debug:
+        var: helm_version.stdout

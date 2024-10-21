@@ -1,53 +1,113 @@
 ---
-- name: Install Java
-  apt:
-    name: openjdk-11-jdk
-    state: present
+- hosts: all
+  become: yes
+  tasks:
+    # 1. Java Kurulumu
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
 
-- name: Download SonarQube
-  get_url:
-    url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.0.43852.zip
-    dest: /tmp/sonarqube.zip
+    # 2. PostgreSQL Kurulumu
+    - name: Install PostgreSQL
+      apt:
+        name: postgresql
+        state: present
 
-- name: Extract SonarQube
-  unarchive:
-    src: /tmp/sonarqube.zip
-    dest: /opt/
-    remote_src: yes
+    - name: Start PostgreSQL service
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
 
-- name: Create symlink for SonarQube
-  file:
-    src: /opt/sonarqube-8.9.0.43852
-    dest: /opt/sonarqube
-    state: link
+    - name: Create SonarQube database
+      postgresql_db:
+        name: sonar
+        encoding: UTF8
 
-- name: Change ownership of SonarQube directory
-  file:
-    path: /opt/sonarqube
-    owner: root
-    group: root
-    recurse: yes
+    - name: Create SonarQube database user
+      postgresql_user:
+        name: sonar
+        password: "strong_password"
+        priv: "sonar:ALL"
 
-- name: Configure SonarQube as a service
-  copy:
-    content: |
-      [Unit]
-      Description=SonarQube Service
-      After=network.target
+    # 3. SonarQube İndirme
+    - name: Download SonarQube
+      get_url:
+        url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.0.43852.zip
+        dest: /tmp/sonarqube.zip
 
-      [Service]
-      Type=simple
-      ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
-      ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
-      User=root
-      Restart=on-abort
+    # 4. SonarQube Dosyalarını Çıkartma
+    - name: Extract SonarQube
+      unarchive:
+        src: /tmp/sonarqube.zip
+        dest: /opt/
+        remote_src: yes
 
-      [Install]
-      WantedBy=multi-user.target
-    dest: /etc/systemd/system/sonarqube.service
+    # 5. SonarQube için Sembolik Link Oluşturma
+    - name: Create symlink for SonarQube
+      file:
+        src: /opt/sonarqube-8.9.0.43852
+        dest: /opt/sonarqube
+        state: link
 
-- name: Start and enable SonarQube service
-  systemd:
-    name: sonarqube
-    enabled: yes
-    state: started
+    # 6. SonarQube Kullanıcısı Oluşturma
+    - name: Create sonarqube user
+      user:
+        name: sonarqube
+        system: yes
+        home: /opt/sonarqube
+        shell: /bin/bash
+
+    # 7. SonarQube Klasörünün Sahipliğini Değiştirme
+    - name: Change ownership to sonarqube user
+      file:
+        path: /opt/sonarqube
+        owner: sonarqube
+        group: sonarqube
+        recurse: yes
+
+    # 8. SonarQube için Veritabanı Yapılandırması
+    - name: Configure SonarQube to use PostgreSQL
+      lineinfile:
+        path: /opt/sonarqube/conf/sonar.properties
+        regexp: "^#(sonar.jdbc.username|sonar.jdbc.password|sonar.jdbc.url)"
+        line: "{{ item }}"
+      with_items:
+        - "sonar.jdbc.username=sonar"
+        - "sonar.jdbc.password=strong_password"
+        - "sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonar"
+
+    # 9. SonarQube Servisi Yapılandırması
+    - name: Configure SonarQube as a service
+      copy:
+        content: |
+          [Unit]
+          Description=SonarQube Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+          ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+          User=sonarqube
+          Restart=on-abort
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/sonarqube.service
+
+    # 10. SonarQube Servisini Başlatma ve Otomatik Başlamasını Sağlama
+    - name: Start and enable SonarQube service
+      systemd:
+        name: sonarqube
+        enabled: yes
+        state: started
+
+    # 11. Güvenlik Duvarı Ayarı (Port 9000 açma)
+    - name: Allow SonarQube through firewall
+      ufw:
+        rule: allow
+        port: 9000
+        proto: tcp

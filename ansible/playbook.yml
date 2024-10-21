@@ -10,3 +10,7 @@
 - hosts: sonarqube
   roles:
     - sonarqube
+
+- hosts: helm
+  roles:
+    - helm
