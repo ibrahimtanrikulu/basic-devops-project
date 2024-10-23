@@ -1,12 +1,12 @@
 frontend:
   image: your-dockerhub-username/angular-app:latest
-  replicas: 2
+  replicas: 1
   service:
     type: LoadBalancer
     port: 80
 
 backend:
   image: your-dockerhub-username/backend-app:latest
-  replicas: 2
+  replicas: 1
   service:
     port: 8080
