@@ -25,3 +25,17 @@ resource "aws_s3_bucket" "old_version_solar_qube_bucket" {
     Environment = "Dev"
   }
 }
+
+resource "aws_s3_bucket" "old_version_data_base_bucket" {
+  bucket = "app-data-base-bucket"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  tags = {
+    Name        = "oldVersionDataBase"
+    Environment = "Dev"
+  }
+}
