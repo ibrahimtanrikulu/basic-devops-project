@@ -1,13 +1,5 @@
-provider "aws" {
-  region = "us-east-1"
-}
-resource "aws_s3_bucket" "app_old_version_bucket" {
-  bucket = "app-test-bucket"
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
+resource "aws_s3_bucket" "devops_old_version_app_bucket" {
+  bucket = "devops-old-version-app-bucket"
 
   tags = {
     Name        = "oldVersionApp"
@@ -15,30 +7,11 @@ resource "aws_s3_bucket" "app_old_version_bucket" {
   }
 }
 
-resource "aws_s3_bucket" "old_version_solar_qube_bucket" {
-  bucket = "app-solar-qube-bucket"
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
+resource "aws_s3_bucket" "devops_solar_qube_old_version_bucket" {
+  bucket = "devops-solar-qube-app-bucket"
 
   tags = {
     Name        = "oldVersionSolarQube"
     Environment = "Dev"
   }
-}
-
-resource "aws_s3_bucket" "old_version_data_base_bucket" {
-  bucket = "app-data-base-bucket"
-  acl    = "private"
-
-  versioning {
-    enabled = true
-  }
-
-  tags = {
-    Name        = "oldVersionDataBase"
-    Environment = "Dev"
-  }
-}
+} 
