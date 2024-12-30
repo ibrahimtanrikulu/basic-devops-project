@@ -1,4 +1,0 @@
-apiVersion: v2
-name: devops-project
-description: A Helm chart for deploying Angular and Java applications
-version: 0.1.0
